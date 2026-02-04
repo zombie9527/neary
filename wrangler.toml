@@ -1,0 +1,6 @@
+name = "lan-transfer"
+pages_build_output_dir = "./dist"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "neary_kv" # Will be ignored during local dev
