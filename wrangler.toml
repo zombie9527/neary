@@ -1,6 +1,2 @@
 name = "lan-transfer"
 pages_build_output_dir = "./dist"
-
-[[kv_namespaces]]
-binding = "KV"
-id = "YOUR_KV_NAMESPACE_ID_HEX" # 填入 Cloudflare 后台生成的 32 位 Hex ID
