@@ -31,15 +31,14 @@ app.get('/join/:roomId/:deviceId', async (c) => {
 // Signal relay
 app.post('/signal/:roomId/:toDeviceId', async (c) => {
     const { roomId, toDeviceId } = c.req.param()
-    const signal = await c.req.json() // { from, type, sdp/ice }
+    const signal = await c.req.json() // { from, type, data }
     const kv = c.env.KV
 
-    const key = `${SIGNALS_PREFIX}${roomId}:${toDeviceId}`
-    const existingSignalsStr = await kv.get(key)
-    const signals = existingSignalsStr ? JSON.parse(existingSignalsStr) : []
+    // Use a unique key per signal to avoid race conditions
+    const sigId = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}`
+    const key = `${SIGNALS_PREFIX}${roomId}:${toDeviceId}:${sigId}`
 
-    signals.push(signal)
-    await kv.put(key, JSON.stringify(signals), { expirationTtl: 600 }) // Signals expire quickly
+    await kv.put(key, JSON.stringify(signal), { expirationTtl: 300 }) // 5 min TTL is plenty
 
     return c.json({ success: true })
 })
@@ -48,15 +47,23 @@ app.get('/signals/:roomId/:deviceId', async (c) => {
     const { roomId, deviceId } = c.req.param()
     const kv = c.env.KV
 
-    const key = `${SIGNALS_PREFIX}${roomId}:${deviceId}`
-    const signalsStr = await kv.get(key)
+    const prefix = `${SIGNALS_PREFIX}${roomId}:${deviceId}:`
 
-    if (signalsStr) {
-        await kv.delete(key) // Consume signals
-        return c.json(JSON.parse(signalsStr))
+    // List all signal keys for this device
+    const list = await kv.list({ prefix })
+    const signals = []
+
+    // Fetch and collect signals
+    for (const key of list.keys) {
+        const val = await kv.get(key.name)
+        if (val) {
+            signals.push(JSON.parse(val))
+            // Consume signal
+            await kv.delete(key.name)
+        }
     }
 
-    return c.json([])
+    return c.json(signals)
 })
 
 export const onRequest = handle(app)
