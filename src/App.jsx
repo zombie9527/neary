@@ -18,7 +18,14 @@ function cn(...inputs) {
 }
 
 // CONFIG
-const ICE_SERVERS = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+const ICE_SERVERS = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com' }
+    ]
+};
 const POLL_INTERVAL = 3000;
 
 const App = () => {
@@ -79,8 +86,9 @@ const App = () => {
             }
         };
 
-        // 10s polling for host, guests stop after connection
-        const interval = setInterval(poll, 10000);
+        // Polling for signals. 
+        // 3s interval is necessary for WebRTC handshake timeout constraints
+        const interval = setInterval(poll, POLL_INTERVAL);
         poll();
         return () => clearInterval(interval);
     }, [inRoom, roomId, deviceId, isHost, activePeers]);
