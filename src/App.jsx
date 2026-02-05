@@ -332,7 +332,16 @@ const App = () => {
 
         try {
             const res = await fetch(`/api/join/${roomId}/${deviceId}`);
-            const info = await res.json();
+            let info = await res.json();
+
+            // Double Check: If we are assigned Host, wait 800ms and re-verify.
+            // This prevents the "Dual Host" race condition due to KV eventual consistency.
+            if (info.isHost) {
+                await new Promise(r => setTimeout(r, 800));
+                const recheck = await fetch(`/api/join/${roomId}/${deviceId}`);
+                info = await recheck.json();
+            }
+
             setIsHost(info.isHost);
             setHostId(info.hostId);
             setInRoom(true);
